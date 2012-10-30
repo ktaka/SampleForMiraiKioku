@@ -1,4 +1,6 @@
 /*
+ * 未来へのキオク API アクセスのサンプルコード for 東北 TECH 道場
+ * 
  * This code was inspired from "Android Programming Nyumon 2nd edition".
  * http://www.amazon.co.jp/dp/4048860682/
  */
@@ -38,6 +40,7 @@ public class MainActivity extends ListActivity {
 
 	private List<KiokuItem> kiokuList;
 	private KiokuArrayAdapter adapter;
+	// キオク検索 API
 	private static final String miraiKiokuUrl = "http://www.miraikioku.com/api/search/kioku";
 	
     @Override
@@ -57,8 +60,11 @@ public class MainActivity extends ListActivity {
     }
     
     private void getData() {
-    	//android.net.Uri.Builder を使うべきか
-    	String apiUrl = miraiKiokuUrl + "?" + "event-date=" + "20080805";
+    	// API アクセスのための url を文字列として組み立てます。
+    	// ここでは type と event-date のパラメータを指定しています。
+    	// http://www.miraikioku.com/docs/api/search_kioku を参照して
+    	// いろいろなパラメータを設定して試してみて下さい。
+    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
     	new AccessAPItask().execute(apiUrl);
     }
     
@@ -118,7 +124,6 @@ public class MainActivity extends ListActivity {
 
 		@Override
 		protected JSONObject doInBackground(String... args) {
-			// TODO Auto-generated method stub
 			execAPI(args[0]);
 			return null;
 		}
@@ -131,38 +136,50 @@ public class MainActivity extends ListActivity {
 		private void execAPI(String url) {
 			try {
 		    	Log.d("MiraiKiokuAPIsample", "execAPI=" + url);
+		    	// 文字列として組み立てた url で http の GET リクエストをサーバーに送ります。
+		    	// これが「API を呼び出す」ことになります。
 				HttpGet request = new HttpGet(url);
 				HttpResponse response = executeRequest(request);
+				
+				// サーバーからのステータスを取得します。
 				int statusCode = response.getStatusLine().getStatusCode();
 				StringBuilder buf = new StringBuilder();
 				InputStream in = response.getEntity().getContent();
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 				String l = null;
+				
+				// サーバーからのレスポンスを行単位に読み込みます。
 				while((l = reader.readLine()) != null) {
 					buf.append(l);
 //					Log.d("MiraiKiokuAPISample", l);
 				}
 				if(statusCode == 200) {
-					//
+					// ステータスが成功ならレスポンスのパース（解析）を行います。
 					parseResponse(buf.toString());
 				}
 			} catch(IOException e) {
+				Log.e("MiraiKiokuAPISample", "IO error", e);
 			} catch(JSONException e) {
-				
+				Log.e("MiraiKiokuAPISample", "JSON error", e);
 			}
-			
 		}
 		
 		private void parseResponse(String buf) throws JSONException {
+			// レスポンスは JSON フォーマットとしてパースします。
 			JSONObject rootObj = new JSONObject(buf);
+			// アイテムの件数を取得
 			int count = rootObj.getInt("count");
 			Log.d("MiraiKiokuAPISample", String.valueOf(count));
+			
+			// アイテムを配列として取得
 			JSONArray results = rootObj.getJSONArray("results");
 			for(int i = 0; i < count; i++) {
 				JSONObject item = results.getJSONObject(i);
 				Log.d("MiraiKiokuAPISample", item.getString("title"));
 				Log.d("MiraiKiokuAPISample", item.getString("url"));
 				Log.d("MiraiKiokuAPISample", item.getString("thumb-url"));
+				
+				// ListView に表示するためのアイテムとして登録します。
 				KiokuItem kioku = new KiokuItem();
 				kioku.title = item.getString("title");
 				kioku.thumbUrl = item.getString("thumb-url");
