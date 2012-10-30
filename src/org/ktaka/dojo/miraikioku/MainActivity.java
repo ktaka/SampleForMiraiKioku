@@ -1,29 +1,52 @@
+/*
+ * This code was inspired from "Android Programming Nyumon 2nd edition".
+ * http://www.amazon.co.jp/dp/4048860682/
+ */
+
 package org.ktaka.dojo.miraikioku;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.app.Activity;
+import android.app.ListActivity;
+import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.TextView;
 
-public class MainActivity extends Activity {
+public class MainActivity extends ListActivity {
 
+	private List<KiokuItem> kiokuList;
+	private KiokuArrayAdapter adapter;
 	private static final String miraiKiokuUrl = "http://www.miraikioku.com/api/search/kioku";
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        kiokuList = new ArrayList<KiokuItem>();
+        adapter = new KiokuArrayAdapter(getApplicationContext(), 0, kiokuList);
+        getListView().setAdapter(adapter);
         getData();
     }
 
@@ -39,7 +62,54 @@ public class MainActivity extends Activity {
     	new AccessAPItask().execute(apiUrl);
     }
     
-    private class AccessAPItask extends AsyncTask<String, Void, Void> {
+    private class KiokuItem {
+    	String title;
+    	String thumbUrl;
+    }
+    
+    private class KiokuArrayAdapter extends ArrayAdapter<KiokuItem> {
+    	private LayoutInflater inflater;
+    	
+		public KiokuArrayAdapter(Context context, int textViewResourceId,
+				List<KiokuItem> objects) {
+			super(context, textViewResourceId, objects);
+			inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		}
+		
+		private class ViewHolder {
+			TextView title;
+			ImageView thumbnail;
+		}
+		
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {
+			ViewHolder holder;
+
+			if(convertView == null) {
+				convertView = inflater.inflate(R.layout.row, null, false);
+				holder = new ViewHolder();
+				holder.title = (TextView)convertView.findViewById(R.id.title);
+				holder.thumbnail = (ImageView)convertView.findViewById(R.id.thumbnail);
+				convertView.setTag(holder);
+			} else {
+				holder = (ViewHolder)convertView.getTag();
+			}
+			KiokuItem item = getItem(position);
+			holder.title.setText(item.title);
+			String thumbUrl = item.thumbUrl;
+			holder.thumbnail.setTag(thumbUrl);
+			Bitmap b = ImageMap.getImage(thumbUrl);
+			if(b != null) {
+				holder.thumbnail.setImageBitmap(b);
+			} else {
+				holder.thumbnail.setImageDrawable(null);
+				new SetImageTask(thumbUrl, holder.thumbnail).execute((Void)null);
+			}
+			return convertView;
+		}
+    }
+    
+    private class AccessAPItask extends AsyncTask<String, Void, JSONObject> {
     	private DefaultHttpClient httpClient;
     	
     	public AccessAPItask() {
@@ -47,10 +117,15 @@ public class MainActivity extends Activity {
     	}
 
 		@Override
-		protected Void doInBackground(String... args) {
+		protected JSONObject doInBackground(String... args) {
 			// TODO Auto-generated method stub
 			execAPI(args[0]);
 			return null;
+		}
+		
+		@Override
+		protected void onPostExecute(JSONObject result) {
+			adapter.notifyDataSetChanged();
 		}
 		
 		private void execAPI(String url) {
@@ -65,15 +140,34 @@ public class MainActivity extends Activity {
 				String l = null;
 				while((l = reader.readLine()) != null) {
 					buf.append(l);
-					Log.d("MiraiKiokuAPISample", l);
+//					Log.d("MiraiKiokuAPISample", l);
 				}
 				if(statusCode == 200) {
 					//
+					parseResponse(buf.toString());
 				}
 			} catch(IOException e) {
+			} catch(JSONException e) {
 				
 			}
 			
+		}
+		
+		private void parseResponse(String buf) throws JSONException {
+			JSONObject rootObj = new JSONObject(buf);
+			int count = rootObj.getInt("count");
+			Log.d("MiraiKiokuAPISample", String.valueOf(count));
+			JSONArray results = rootObj.getJSONArray("results");
+			for(int i = 0; i < count; i++) {
+				JSONObject item = results.getJSONObject(i);
+				Log.d("MiraiKiokuAPISample", item.getString("title"));
+				Log.d("MiraiKiokuAPISample", item.getString("url"));
+				Log.d("MiraiKiokuAPISample", item.getString("thumb-url"));
+				KiokuItem kioku = new KiokuItem();
+				kioku.title = item.getString("title");
+				kioku.thumbUrl = item.getString("thumb-url");
+				kiokuList.add(kioku);
+			}
 		}
 		
 		private HttpResponse executeRequest(HttpRequestBase base) throws IOException {
