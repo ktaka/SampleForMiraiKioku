@@ -25,6 +25,7 @@ import org.json.JSONObject;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -42,6 +43,7 @@ public class MainActivity extends ListActivity {
 	private KiokuArrayAdapter adapter;
 	// キオク検索 API
 	private static final String miraiKiokuUrl = "http://www.miraikioku.com/api/search/kioku";
+	private ProgressDialog progressDialog;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -50,6 +52,11 @@ public class MainActivity extends ListActivity {
         kiokuList = new ArrayList<KiokuItem>();
         adapter = new KiokuArrayAdapter(getApplicationContext(), 0, kiokuList);
         getListView().setAdapter(adapter);
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.setMessage("Getting data from server...");
+        progressDialog.setCancelable(true);
+        progressDialog.show();
         getData();
     }
 
@@ -130,6 +137,7 @@ public class MainActivity extends ListActivity {
 		
 		@Override
 		protected void onPostExecute(JSONObject result) {
+			progressDialog.dismiss();
 			adapter.notifyDataSetChanged();
 		}
 		
