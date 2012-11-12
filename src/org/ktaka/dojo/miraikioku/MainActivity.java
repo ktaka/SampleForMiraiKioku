@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -35,6 +36,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 public class MainActivity extends ListActivity {
@@ -64,6 +66,11 @@ public class MainActivity extends ListActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.activity_main, menu);
         return true;
+    }
+    
+    protected void onListItemClick(ListView l, View v, int position, long id) {
+    	Intent intent = new Intent(this, KiokuView.class);
+    	startActivity(intent);
     }
     
     private void getData() {
