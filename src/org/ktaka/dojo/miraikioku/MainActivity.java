@@ -70,6 +70,8 @@ public class MainActivity extends ListActivity {
     
     protected void onListItemClick(ListView l, View v, int position, long id) {
     	Intent intent = new Intent(this, KiokuView.class);
+    	KiokuItem item = (KiokuItem)l.getItemAtPosition(position);
+    	intent.putExtra("ImageUrl", item.imageUrl);
     	startActivity(intent);
     }
     
@@ -85,6 +87,7 @@ public class MainActivity extends ListActivity {
     private class KiokuItem {
     	String title;
     	String thumbUrl;
+    	String imageUrl;
     }
     
     private class KiokuArrayAdapter extends ArrayAdapter<KiokuItem> {
@@ -198,6 +201,7 @@ public class MainActivity extends ListActivity {
 				KiokuItem kioku = new KiokuItem();
 				kioku.title = item.getString("title");
 				kioku.thumbUrl = item.getString("thumb-url");
+				kioku.imageUrl = item.getString("image-url");
 				kiokuList.add(kioku);
 			}
 		}
