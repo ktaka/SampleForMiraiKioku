@@ -22,6 +22,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.ListActivity;
@@ -38,6 +41,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends ListActivity {
 
@@ -47,6 +51,9 @@ public class MainActivity extends ListActivity {
 	private static final String miraiKiokuUrl = "http://www.miraikioku.com/api/search/kioku";
 	private ProgressDialog progressDialog;
 	
+	// location
+	LocationManager locationManager;
+	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,18 +61,85 @@ public class MainActivity extends ListActivity {
         kiokuList = new ArrayList<KiokuItem>();
         adapter = new KiokuArrayAdapter(getApplicationContext(), 0, kiokuList);
         getListView().setAdapter(adapter);
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        progressDialog.setMessage("Getting data from server...");
-        progressDialog.setCancelable(true);
-        progressDialog.show();
-        getData();
+        // location
+        locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        
+//        progressDialog = new ProgressDialog(this);
+//        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+//        progressDialog.setMessage("Getting data from server...");
+//        progressDialog.setCancelable(true);
+//        progressDialog.show();
+//        getData();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.activity_main, menu);
         return true;
+    }
+    
+    @Override
+    public void onResume() {
+    	super.onResume();
+    	setupLocation();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        locationManager.removeUpdates(listener);
+    }
+
+    private void setupLocation() {
+      progressDialog = new ProgressDialog(this);
+      progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+      progressDialog.setMessage("Getting location...");
+      progressDialog.setCancelable(true);
+      progressDialog.show();
+
+    	Location gpsLocation = null;
+        locationManager.removeUpdates(listener);
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 10, listener);
+            gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        } else {
+            Toast.makeText(this, "failed to get location from GPS", Toast.LENGTH_LONG).show();
+        }
+        if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 10, listener);
+            gpsLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        } else {
+            Toast.makeText(this, "failed to get location from NETWORK", Toast.LENGTH_LONG).show();
+        }
+    	
+    }
+    
+    private final LocationListener listener = new LocationListener() {
+
+        @Override
+        public void onLocationChanged(Location location) {
+            // A new location update is received.  Do something useful with it.  Update the UI with
+            // the location update.
+            updateLocation(location);
+          getData(location);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+        }
+    };
+    
+    private void updateLocation(Location location) {
+		progressDialog.dismiss();
+    	Log.i("MiraiKiokuAPILocaion", "location=" + location.toString());
     }
     
     protected void onListItemClick(ListView l, View v, int position, long id) {
@@ -75,12 +149,19 @@ public class MainActivity extends ListActivity {
     	startActivity(intent);
     }
     
-    private void getData() {
+    private void getData(Location location) {
     	// API アクセスのための url を文字列として組み立てます。
     	// ここでは type と event-date のパラメータを指定しています。
     	// http://www.miraikioku.com/docs/api/search_kioku を参照して
     	// いろいろなパラメータを設定して試してみて下さい。
-    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.setMessage("Getting data from server...");
+        progressDialog.setCancelable(true);
+        progressDialog.show();
+//    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
+    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "location-radius=40" + "&" +
+    			"location=" + String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
     	new AccessAPItask().execute(apiUrl);
     }
     
