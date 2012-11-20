@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -22,6 +23,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -51,7 +54,6 @@ public class MainActivity extends ListActivity {
 	private static final String miraiKiokuUrl = "http://www.miraikioku.com/api/search/kioku";
 	private ProgressDialog progressDialog;
 	
-	// location
 	LocationManager locationManager;
 	
     @Override
@@ -61,21 +63,19 @@ public class MainActivity extends ListActivity {
         kiokuList = new ArrayList<KiokuItem>();
         adapter = new KiokuArrayAdapter(getApplicationContext(), 0, kiokuList);
         getListView().setAdapter(adapter);
-        // location
+
         locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-        
-//        progressDialog = new ProgressDialog(this);
-//        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-//        progressDialog.setMessage("Getting data from server...");
-//        progressDialog.setCancelable(true);
-//        progressDialog.show();
-//        getData();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.activity_main, menu);
         return true;
+    }
+    
+    @Override
+    public void onStart() {
+    	super.onStart();
     }
     
     @Override
@@ -121,7 +121,6 @@ public class MainActivity extends ListActivity {
             // A new location update is received.  Do something useful with it.  Update the UI with
             // the location update.
             updateLocation(location);
-          getData(location);
         }
 
         @Override
@@ -138,8 +137,10 @@ public class MainActivity extends ListActivity {
     };
     
     private void updateLocation(Location location) {
-		progressDialog.dismiss();
     	Log.i("MiraiKiokuAPILocaion", "location=" + location.toString());
+        (new ReverseGeocodingTask(this)).execute(new Location[] {location});
+		progressDialog.dismiss();
+        getData(location);
     }
     
     protected void onListItemClick(ListView l, View v, int position, long id) {
@@ -159,8 +160,7 @@ public class MainActivity extends ListActivity {
         progressDialog.setMessage("Getting data from server...");
         progressDialog.setCancelable(true);
         progressDialog.show();
-//    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
-    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "location-radius=40" + "&" +
+    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "location-radius=5" + "&" +
     			"location=" + String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
     	new AccessAPItask().execute(apiUrl);
     }
@@ -296,4 +296,48 @@ public class MainActivity extends ListActivity {
 			}
 		}
     }
+    
+    //
+    private class ReverseGeocodingTask extends AsyncTask<Location, Void, String> {
+        Context mContext;
+        String addressText = "no location";
+
+        public ReverseGeocodingTask(Context context) {
+            super();
+            mContext = context;
+        }
+
+        @Override
+        protected String doInBackground(Location... params) {
+            Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
+
+            Location loc = params[0];
+            List<Address> addresses = null;
+            try {
+                addresses = geocoder.getFromLocation(loc.getLatitude(), loc.getLongitude(), 1);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (addresses != null && addresses.size() > 0) {
+                Address address = addresses.get(0);
+                // Format the first line of address (if available), city, and country name.
+                addressText = String.format("%s, %s, %s",
+                        address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "",
+                        address.getLocality(),
+                        address.getCountryName());
+            }
+            return addressText;
+        }
+    	@Override
+    	protected void onPostExecute(String result) {
+    		Log.d("MiraiKiokuAPI", "Reverse Geo=" + result);
+    		updateGeoString(result);
+    	}
+    }
+    
+    private void updateGeoString(String geo) {
+		TextView loc = (TextView)findViewById(R.id.textView1);
+		loc.setText(geo);
+    }
+
 }
