@@ -6,5 +6,7 @@
     <string name="title_activity_main">MiraiKiokuSample</string>
     <string name="title_activity_kioku_view">KiokuView</string>
     <string name="title_activity_kioku_view2">KiokuView2</string>
-
+    <string name="title_activity_kioku_map">KiokuMap</string>
+    <string name="api_key">0uBM1CKc6xDhi5fPxHagc4KBPE0DCCb9Htxc-Ng</string>
+    
 </resources>
