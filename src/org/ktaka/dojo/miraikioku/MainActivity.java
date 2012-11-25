@@ -181,6 +181,7 @@ public class MainActivity extends ListActivity {
 			
 			// アイテムを配列として取得
 			JSONArray results = rootObj.getJSONArray("results");
+			count = results.length();
 			for(int i = 0; i < count; i++) {
 				JSONObject item = results.getJSONObject(i);
 				Log.d("MiraiKiokuAPISample", item.getString("title"));
