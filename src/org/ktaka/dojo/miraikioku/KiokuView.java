@@ -1,7 +1,5 @@
 package org.ktaka.dojo.miraikioku;
 
-import com.google.android.maps.GeoPoint;
-
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
@@ -14,6 +12,8 @@ import android.widget.ImageView;
 
 public class KiokuView extends Activity implements OnClickListener {
 	String location;
+	String thumbUrl;
+	ImageView imgView;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -21,8 +21,9 @@ public class KiokuView extends Activity implements OnClickListener {
         setContentView(R.layout.activity_kioku_view);
         Intent intent = getIntent();
         location = intent.getStringExtra("location");
+        thumbUrl = intent.getStringExtra("ThumbUrl");
         String imgUrl = intent.getStringExtra("ImageUrl");
-        ImageView imgView = (ImageView)findViewById(R.id.imageView1);
+        imgView = (ImageView)findViewById(R.id.imageView1);
         Bitmap b = ImageMap.getImage(imgUrl);
         if(b != null) {
             imgView.setImageBitmap(b);
@@ -38,6 +39,7 @@ public class KiokuView extends Activity implements OnClickListener {
 	public void onClick(View v) {
 		Intent intent = new Intent(this, KiokuMap.class);
 		intent.putExtra("location", location);
+		intent.putExtra("ThumbUrl", thumbUrl);
 		startActivity(intent);
 	}
     	

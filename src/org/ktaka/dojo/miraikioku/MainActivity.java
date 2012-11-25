@@ -147,6 +147,7 @@ public class MainActivity extends ListActivity {
     	Intent intent = new Intent(this, KiokuView.class);
     	KiokuItem item = (KiokuItem)l.getItemAtPosition(position);
     	intent.putExtra("ImageUrl", item.imageUrl);
+    	intent.putExtra("ThumbUrl", item.thumbUrl);
     	intent.putExtra("location", item.location);
     	startActivity(intent);
     	int i = 0;
@@ -164,7 +165,7 @@ public class MainActivity extends ListActivity {
         progressDialog.setMessage("Getting data from server...");
         progressDialog.setCancelable(true);
         progressDialog.show();
-    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "location-radius=5" + "&" +
+    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "thumb-size=100c" + "&" + "location-radius=40" + "&" +
     			"location=" + String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
     	new AccessAPItask().execute(apiUrl);
     }
@@ -277,6 +278,8 @@ public class MainActivity extends ListActivity {
 			
 			// アイテムを配列として取得
 			JSONArray results = rootObj.getJSONArray("results");
+			count = results.length();
+			kiokuList.clear();
 			for(int i = 0; i < count; i++) {
 				JSONObject item = results.getJSONObject(i);
 				Log.d("MiraiKiokuAPISample", item.getString("title"));
