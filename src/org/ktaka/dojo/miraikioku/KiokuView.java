@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.view.Menu;
+import android.view.View;
 import android.widget.ImageView;
 
 public class KiokuView extends Activity {
@@ -30,4 +31,10 @@ public class KiokuView extends Activity {
         getMenuInflater().inflate(R.menu.activity_kioku_view, menu);
         return true;
     }
+
+	public void showMapView(View v) {
+		Intent intent = new Intent(this, KiokuMap.class);
+		startActivity(intent);
+	}
+	
 }

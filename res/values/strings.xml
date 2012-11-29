@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <string name="app_name">AccessAPIsample</string>
@@ -6,5 +7,6 @@
     <string name="title_activity_main">MiraiKiokuSample</string>
     <string name="title_activity_kioku_view">KiokuView</string>
     <string name="title_activity_kioku_view2">KiokuView2</string>
+    <string name="title_activity_kioku_map">KiokuMap</string>
 
 </resources>
