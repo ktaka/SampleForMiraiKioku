@@ -17,14 +17,28 @@ import android.os.AsyncTask;
 import android.widget.ImageView;
 
 public class SetImageTask extends AsyncTask<Void, Void, Bitmap> {
-    protected String mUrl;
+	   // ここから
+		public interface SetImageTaskListener {
+			public void onSetImage(Bitmap bmp);
+		}
+	   // ここまで追加
+		
+	protected String mUrl;
     protected ImageView mImageView;
+    protected SetImageTaskListener postExecTask = null;   // 追加
     public SetImageTask(String url, ImageView iv) {
         mUrl = url;
         mImageView = iv;
         mImageView.setTag(mUrl);
     }
 
+    // ここから
+    public SetImageTask(String url, SetImageTaskListener listener) {
+        mUrl = url;
+        postExecTask = listener;
+    }
+    // ここまで追加
+    
     /* (non-Javadoc)
      * @see android.os.AsyncTask#doInBackground(Params[])
      */
@@ -53,7 +67,12 @@ public class SetImageTask extends AsyncTask<Void, Void, Bitmap> {
      */
     @Override
     protected void onPostExecute(Bitmap bmp) {
-        if(mImageView != null && mImageView.getTag() != null && mImageView.getTag().equals(mUrl)) {
+        // ここから
+     	if(postExecTask != null) {
+     		postExecTask.onSetImage(bmp);   // 
+     	} else
+        // ここまで追加
+     	if(mImageView != null && mImageView.getTag() != null && mImageView.getTag().equals(mUrl)) {
             mImageView.setImageBitmap(bmp);
         }
     }
