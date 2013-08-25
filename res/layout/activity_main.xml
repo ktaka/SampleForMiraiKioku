@@ -4,6 +4,14 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.08"
+        android:text="未来へのキオク - 石巻復興バー周辺"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
     <ListView
         android:id="@android:id/list"
         android:layout_width="fill_parent"

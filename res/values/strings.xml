@@ -4,6 +4,9 @@
     <string name="app_name">AccessAPIsample</string>
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
+    <string name="menu_kioku">キオク</string>
+    <string name="menu_ishinomaki_bar">石巻 復興バー</string>
+    <string name="menu_ginza_bar">銀座 復興バー</string>
     <string name="title_activity_main">MiraiKiokuSample</string>
     <string name="title_activity_kioku_view">KiokuView</string>
     <string name="title_activity_kioku_view2">KiokuView2</string>

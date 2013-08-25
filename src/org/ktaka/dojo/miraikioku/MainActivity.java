@@ -74,6 +74,9 @@ public class MainActivity extends ListActivity {
     	intent.putExtra("ImageUrl", item.imageUrl);
     	intent.putExtra("ThumbUrl", item.thumbUrl);   // 追加
     	intent.putExtra("location", item.location); // この行を追加
+    	intent.putExtra("Title", item.title);
+    	intent.putExtra("Desc", item.desc);
+    	intent.putExtra("Date", item.date);
     	startActivity(intent);
     }
     
@@ -82,12 +85,16 @@ public class MainActivity extends ListActivity {
     	// ここでは type と event-date のパラメータを指定しています。
     	// http://www.miraikioku.com/docs/api/search_kioku を参照して
     	// いろいろなパラメータを設定して試してみて下さい。
-    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
+//    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805" + "&" + "thumb-size=100c";
+    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "&" + "thumb-size=100c" + "&" +
+    	"location=38.43015,141.307096&location-radius=1&max-results=300"; // 石巻 復興バー付近
     	new AccessAPItask().execute(apiUrl);
     }
     
     private class KiokuItem {
     	String title;
+    	String desc;
+    	String date;
     	String thumbUrl;
     	String imageUrl;
     	String location;
@@ -194,6 +201,7 @@ public class MainActivity extends ListActivity {
 			
 			// アイテムを配列として取得
 			JSONArray results = rootObj.getJSONArray("results");
+			count = results.length();
 			for(int i = 0; i < count; i++) {
 				JSONObject item = results.getJSONObject(i);
 				Log.d("MiraiKiokuAPISample", item.getString("title"));
@@ -206,6 +214,8 @@ public class MainActivity extends ListActivity {
 				kioku.thumbUrl = item.getString("thumb-url");
 				kioku.imageUrl = item.getString("image-url");
 				kioku.location = item.getString("location"); // この行を追加
+				kioku.desc = item.getString("desc");
+				kioku.date = item.getString("event-date");
 				kiokuList.add(kioku);
 			}
 		}
