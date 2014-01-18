@@ -39,6 +39,18 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
+import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
+import com.google.android.gms.location.LocationClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+
+import android.location.Location;
+import android.app.Dialog;
+import android.content.Intent;
+
 public class MainActivity extends ListActivity {
 
 	private List<KiokuItem> kiokuList;
@@ -47,10 +59,25 @@ public class MainActivity extends ListActivity {
 	private static final String miraiKiokuUrl = "http://www.miraikioku.com/api/search/kioku";
 	private ProgressDialog progressDialog;
 	
-    @Override
+	private LocationClient locationClient = null;
+	private TextView locationStatus;
+	private LocationCallback locationCallback = new LocationCallback();
+	private Location lastLocation;
+	public static boolean isAppForeground = false;
+	private Dialog errorDialog;
+	
+	private static final String TAG = "MainActivity";
+	private static final int LOCATION_UPDATES_INTERVAL = 60000; // Setting 60 sec interval for location updates
+	private static final int ERROR_DIALOG_ON_CREATE_REQUEST_CODE = 4055;
+	private static final int ERROR_DIALOG_ON_RESUME_REQUEST_CODE = 4056;
+
+	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        checkGooglePlayServiceAvailability(ERROR_DIALOG_ON_CREATE_REQUEST_CODE);
+
         kiokuList = new ArrayList<KiokuItem>();
         adapter = new KiokuArrayAdapter(getApplicationContext(), 0, kiokuList);
         getListView().setAdapter(adapter);
@@ -58,8 +85,8 @@ public class MainActivity extends ListActivity {
         progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         progressDialog.setMessage("Getting data from server...");
         progressDialog.setCancelable(true);
-        progressDialog.show();
-        getData();
+//        progressDialog.show();
+//        getData();
     }
 
     @Override
@@ -77,13 +104,27 @@ public class MainActivity extends ListActivity {
     	startActivity(intent);
     }
     
-    private void getData() {
+	private void handleLocation(Location location) {
+	    // Update the mLocationStatus with the lat/lng of the location
+	    Log.v(MainActivity.TAG, "LocationChanged == @" +
+	        location.getLatitude() + "," + location.getLongitude());
+	    locationStatus.setText("Location changed @" + 
+	        location.getLatitude() + "," + location.getLongitude());
+	    lastLocation = location;
+	    progressDialog.show();
+	    getData(location);
+	}
+	
+    private void getData(Location location) {
     	// API アクセスのための url を文字列として組み立てます。
     	// ここでは type と event-date のパラメータを指定しています。
     	// http://www.miraikioku.com/docs/api/search_kioku を参照して
     	// いろいろなパラメータを設定して試してみて下さい。
-    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
-    	new AccessAPItask().execute(apiUrl);
+//    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "event-date=20080805";
+    	String apiUrl = miraiKiokuUrl + "?" + "type=photo" + "&" + "thumb-size=100c" + "&" +
+                "location-radius=40" + "&" + "location=" + String.valueOf(location.getLatitude()) + "," +
+                 String.valueOf(location.getLongitude());
+    	new AccessAPItask().execute(apiUrl, "test");
     }
     
     private class KiokuItem {
@@ -140,6 +181,13 @@ public class MainActivity extends ListActivity {
     	
     	public AccessAPItask() {
     		httpClient = new DefaultHttpClient();
+    		JSONObject kv = new JSONObject();
+    		try {
+				kv.put("foo", "1");
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
     	}
 
 		@Override
@@ -218,5 +266,128 @@ public class MainActivity extends ListActivity {
 				throw e;
 			}
 		}
+    }
+
+    private void init() {
+    	// Initialize Location Client
+    	locationStatus = (TextView) findViewById(R.id.locationText);
+    	if(locationClient == null) {
+    		locationClient = new LocationClient(this, locationCallback, locationCallback);
+    		Log.v(MainActivity.TAG, "Location Client connect");
+                	if(!(locationClient.isConnected() || locationClient.isConnecting())) {
+    			locationClient.connect();
+    		}
+    	}
+    }
+
+    private void checkGooglePlayServiceAvailability(int requestCode) {
+		// Query for the status of Google Play services on the device
+		int statusCode = GooglePlayServicesUtil
+				.isGooglePlayServicesAvailable(getBaseContext());
+
+		if (statusCode == ConnectionResult.SUCCESS) {
+			init();
+		} else {
+			if (GooglePlayServicesUtil.isUserRecoverableError(statusCode)) {
+				errorDialog = GooglePlayServicesUtil.getErrorDialog(statusCode,
+						this, requestCode);
+				errorDialog.show();
+			} else {
+				// Handle unrecoverable error
+			}
+		}
+	}
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+            case ERROR_DIALOG_ON_CREATE_REQUEST_CODE:
+                init();
+                break;
+            case ERROR_DIALOG_ON_RESUME_REQUEST_CODE:
+                restartLocationClient();
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Indicate the application is in background
+        isAppForeground = false;
+        
+        if (locationClient.isConnected()) {
+            locationClient.removeLocationUpdates(locationCallback);
+            locationClient.disconnect();
+        }
+    }
+    
+    @Override
+    public void onResume() {
+        	super.onResume();
+        	isAppForeground = true;
+        	checkGooglePlayServiceAvailability(ERROR_DIALOG_ON_RESUME_REQUEST_CODE);
+        	init();
+        	//restartLocationClient();
+    }
+    
+	private class LocationCallback implements 
+	ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
+
+		@Override
+		public void onConnected(Bundle connectionHint) {
+			Log.v(MainActivity.TAG, "Location Client Connected");
+			Location currentLocation = locationClient.getLastLocation();
+            if(currentLocation != null) {
+				handleLocation(currentLocation);
+            }
+            LocationRequest request = LocationRequest.create();
+            request.setInterval(LOCATION_UPDATES_INTERVAL);
+            request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+            // より高い精度が必要な場合は下記の方を使用します
+            // request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            locationClient.requestLocationUpdates(request, locationCallback);
+		}
+
+		@Override
+		public void onDisconnected() {
+			Log.v(MainActivity.TAG, "Location Client Disconnected");
+		}
+
+		@Override
+		public void onConnectionFailed(ConnectionResult result) {
+			Log.v(MainActivity.TAG, "Location Client connection failed");
+		}
+
+		@Override
+		public void onLocationChanged(Location location) {
+            if (location == null) {
+                Log.v(MainActivity.TAG, "onLocationChanged: location == null");
+                return;
+            }
+            if (lastLocation != null &&
+                    lastLocation.getLatitude() == location.getLatitude() &&
+                    lastLocation.getLongitude() == location.getLongitude()) {
+                return;
+            }
+            handleLocation(location);		
+		}
+	}
+	
+	private void restartLocationClient() {
+        if (!(locationClient.isConnected() || locationClient.isConnecting())) {
+            locationClient.connect(); // Somehow it becomes connected here
+            return;
+        }
+        
+        LocationRequest request = LocationRequest.create();
+        request.setInterval(LOCATION_UPDATES_INTERVAL);
+        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        // より高い精度が必要な場合は下記の方を使用します
+        // request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        //locationClient.requestLocationUpdates(request, locationCallback);
     }
 }

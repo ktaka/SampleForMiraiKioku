@@ -19,6 +19,7 @@ public class KiokuView extends Activity {
         Intent intent = getIntent();
         location = intent.getStringExtra("location");     // この行を追加        
         thumbUrl = intent.getStringExtra("ThumbUrl");      // 追加
+        location = intent.getStringExtra("location");     // この行を追加
         String imgUrl = intent.getStringExtra("ImageUrl");
         ImageView imgView = (ImageView)findViewById(R.id.imageView1);
         Bitmap b = ImageMap.getImage(imgUrl);
@@ -40,7 +41,10 @@ public class KiokuView extends Activity {
 		Intent intent = new Intent(this, KiokuMap.class);
 		intent.putExtra("location", location);
 		intent.putExtra("ThumbUrl", thumbUrl);     // 追加
+		intent.putExtra("location", location);        // この行を追加
 		startActivity(intent);
 	}
-	
+		intent.putExtra("location", location);        // この行を追加
+		startActivity(intent);
+	}
 }
