@@ -44,7 +44,4 @@ public class KiokuView extends Activity {
 		intent.putExtra("location", location);        // この行を追加
 		startActivity(intent);
 	}
-		intent.putExtra("location", location);        // この行を追加
-		startActivity(intent);
-	}
 }
